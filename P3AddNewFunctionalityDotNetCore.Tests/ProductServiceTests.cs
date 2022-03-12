@@ -1,15 +1,12 @@
-﻿using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.DependencyInjection;
-using P3AddNewFunctionalityDotNetCore.Data;
+﻿using Microsoft.Extensions.Localization;
+using Moq;
 using P3AddNewFunctionalityDotNetCore.Models;
 using P3AddNewFunctionalityDotNetCore.Models.Repositories;
 using P3AddNewFunctionalityDotNetCore.Models.Services;
 using P3AddNewFunctionalityDotNetCore.Models.ViewModels;
-using Microsoft.Extensions.Localization;
 using System.Collections.Generic;
-using Xunit;
-using Moq;
 using System.Globalization;
+using Xunit;
 
 namespace P3AddNewFunctionalityDotNetCore.Tests
 {
@@ -72,18 +69,41 @@ namespace P3AddNewFunctionalityDotNetCore.Tests
             }
         }
 
+        public IStringLocalizer<ProductService> MockLocaliser()
+        {
+            var MockL = new Mock<IStringLocalizer<ProductService>>();
+            MockL.Setup(_ => _["MissingName"]).Returns(new LocalizedString("MissingName", "MissingName"));
+            MockL.Setup(_ => _["MissingPrice"]).Returns(new LocalizedString("MissingPrice", "MissingPrice"));
+            MockL.Setup(_ => _["PriceNotANumber"]).Returns(new LocalizedString("PriceNotANumber", "PriceNotANumber"));
+            MockL.Setup(_ => _["PriceNotGreaterThanZero"]).Returns(new LocalizedString("PriceNotGreaterThanZero", "PriceNotGreaterThanZero"));
+            MockL.Setup(_ => _["MissingQuantity"]).Returns(new LocalizedString("MissingQuantity", "MissingQuantity"));
+            MockL.Setup(_ => _["StockNotAnInteger"]).Returns(new LocalizedString("StockNotAnInteger", "StockNotAnInteger"));
+            MockL.Setup(_ => _["StockNotGreaterThanZero"]).Returns(new LocalizedString("StockNotGreaterThanZero", "StockNotGreaterThanZero"));
+
+            return MockL.Object;
+        }
+
+        public ProductViewModel ProductVM()
+        {
+            ProductViewModel ProductToBeTested = new ProductViewModel
+            {
+                Id = 1,
+                Name = "ball",
+                Description = "color : orange",
+                Details = "Its diameter is 24cm.",
+                Stock = "1",
+                Price = "10"
+            };
+
+            return ProductToBeTested;
+        }
+
         [Fact]
         public void MissingNameTest()
         {
             //ARRANGE
-            ProductViewModel ProductToBeTested = new ProductViewModel();
-            ProductToBeTested.Id = 1;
-            //ProductToBeTested.Name = "ball";
-            ProductToBeTested.Description = "color : orange";
-            ProductToBeTested.Details = "Its diameter is 24cm.";
-            ProductToBeTested.Stock = "1";
-            ProductToBeTested.Price = "10";
-
+            ProductViewModel ProductToBeTested = ProductVM();
+            ProductToBeTested.Name = "";
             var MockCart = new Mock<ICart>();
             var MockProductRepository = new Mock<IProductRepository>();
             var MockOrderRepository = new Mock<IOrderRepository>();
@@ -93,25 +113,23 @@ namespace P3AddNewFunctionalityDotNetCore.Tests
                 MockCart.Object,
                 MockProductRepository.Object,
                 MockOrderRepository.Object,
-                new FakeLocalizer()
+                //new FakeLocalizer()
+                MockLocaliser()
                 );
+            List<string> ErrorList = productService1.CheckProductModelErrors(ProductToBeTested);
+
 
             //ASSERT
-            Assert.Contains("MissingName", productService1.CheckProductModelErrors(ProductToBeTested));
+            Assert.Contains("MissingName", ErrorList);
+            Assert.Single(ErrorList);
         }
 
         [Fact]
         public void MissingPriceTest()
         {
             //ARRANGE
-            ProductViewModel ProductToBeTested = new ProductViewModel();
-            ProductToBeTested.Id = 1;
-            ProductToBeTested.Name = "ball";
-            ProductToBeTested.Description = "color : orange";
-            ProductToBeTested.Details = "Its diameter is 24cm.";
-            ProductToBeTested.Stock = "1";
-            ProductToBeTested.Price = ""; //price missing
-
+            ProductViewModel ProductToBeTested = ProductVM();
+            ProductToBeTested.Price = " ";
             var MockCart = new Mock<ICart>();
             var MockProductRepository = new Mock<IProductRepository>();
             var MockOrderRepository = new Mock<IOrderRepository>();
@@ -121,25 +139,24 @@ namespace P3AddNewFunctionalityDotNetCore.Tests
                 MockCart.Object,
                 MockProductRepository.Object,
                 MockOrderRepository.Object,
-                new FakeLocalizer()
+                //new FakeLocalizer()
+                MockLocaliser()
                 );
+            List<string> ErrorList = productService1.CheckProductModelErrors(ProductToBeTested);
+
 
             //ASSERT
-            Assert.Contains("MissingPrice", productService1.CheckProductModelErrors(ProductToBeTested));
+            Assert.Contains("MissingPrice", ErrorList);
+            Assert.Contains("PriceNotANumber", ErrorList);
+            Assert.Equal(2, ErrorList.Count);
         }
 
         [Fact]
         public void PriceNotANumberTest()
         {
             //ARRANGE
-            ProductViewModel ProductToBeTested = new ProductViewModel();
-            ProductToBeTested.Id = 1;
-            ProductToBeTested.Name = "ball";
-            ProductToBeTested.Description = "color : orange";
-            ProductToBeTested.Details = "Its diameter is 24cm.";
-            ProductToBeTested.Stock = "1";
+            ProductViewModel ProductToBeTested = ProductVM();
             ProductToBeTested.Price = "a"; //PriceNotANumber
-
             var MockCart = new Mock<ICart>();
             var MockProductRepository = new Mock<IProductRepository>();
             var MockOrderRepository = new Mock<IOrderRepository>();
@@ -149,23 +166,20 @@ namespace P3AddNewFunctionalityDotNetCore.Tests
                 MockCart.Object,
                 MockProductRepository.Object,
                 MockOrderRepository.Object,
-                new FakeLocalizer()
+                MockLocaliser()
                 );
+            List<string> ErrorList = productService1.CheckProductModelErrors(ProductToBeTested);
 
             //ASSERT
-            Assert.Contains("PriceNotANumber", productService1.CheckProductModelErrors(ProductToBeTested));
+            Assert.Contains("PriceNotANumber", ErrorList);
+            Assert.Single(ErrorList);
         }
 
         [Fact]
         public void PriceNotGreaterThanZeroTest()
         {
             //ARRANGE
-            ProductViewModel ProductToBeTested = new ProductViewModel();
-            ProductToBeTested.Id = 1;
-            ProductToBeTested.Name = "ball";
-            ProductToBeTested.Description = "color : orange";
-            ProductToBeTested.Details = "Its diameter is 24cm.";
-            ProductToBeTested.Stock = "1";
+            ProductViewModel ProductToBeTested = ProductVM();
             ProductToBeTested.Price = "-5"; //PriceNotGreaterThanZero
 
             var MockCart = new Mock<ICart>();
@@ -177,24 +191,21 @@ namespace P3AddNewFunctionalityDotNetCore.Tests
                 MockCart.Object,
                 MockProductRepository.Object,
                 MockOrderRepository.Object,
-                new FakeLocalizer()
+                MockLocaliser()
                 );
+            List<string> ErrorList = productService1.CheckProductModelErrors(ProductToBeTested);
 
             //ASSERT
-            Assert.Contains("PriceNotGreaterThanZero", productService1.CheckProductModelErrors(ProductToBeTested));
+            Assert.Contains("PriceNotGreaterThanZero", ErrorList);
+            Assert.Single(ErrorList);
         }
 
         [Fact]
         public void MissingQuantityTest()
         {
             //ARRANGE
-            ProductViewModel ProductToBeTested = new ProductViewModel();
-            ProductToBeTested.Id = 1;
-            ProductToBeTested.Name = "ball";
-            ProductToBeTested.Description = "color : orange";
-            ProductToBeTested.Details = "Its diameter is 24cm.";
-            ProductToBeTested.Stock = ""; //MissingQuantity
-            ProductToBeTested.Price = "10";
+            ProductViewModel ProductToBeTested = ProductVM();
+            ProductToBeTested.Stock = " "; //MissingQuantity
 
             var MockCart = new Mock<ICart>();
             var MockProductRepository = new Mock<IProductRepository>();
@@ -205,24 +216,22 @@ namespace P3AddNewFunctionalityDotNetCore.Tests
                 MockCart.Object,
                 MockProductRepository.Object,
                 MockOrderRepository.Object,
-                new FakeLocalizer()
+                MockLocaliser()
                 );
+            List<string> ErrorList = productService1.CheckProductModelErrors(ProductToBeTested);
 
             //ASSERT
-            Assert.Contains("MissingQuantity", productService1.CheckProductModelErrors(ProductToBeTested));
+            Assert.Contains("MissingQuantity", ErrorList);
+            Assert.Contains("StockNotAnInteger", ErrorList);
+            Assert.Equal(2, ErrorList.Count);
         }
 
         [Fact]
         public void StockNotAnIntegerTest()
         {
             //ARRANGE
-            ProductViewModel ProductToBeTested = new ProductViewModel();
-            ProductToBeTested.Id = 1;
-            ProductToBeTested.Name = "ball";
-            ProductToBeTested.Description = "color : orange";
-            ProductToBeTested.Details = "Its diameter is 24cm.";
+            ProductViewModel ProductToBeTested = ProductVM();
             ProductToBeTested.Stock = "z"; //StockNotAnInteger
-            ProductToBeTested.Price = "10";
 
             var MockCart = new Mock<ICart>();
             var MockProductRepository = new Mock<IProductRepository>();
@@ -233,24 +242,21 @@ namespace P3AddNewFunctionalityDotNetCore.Tests
                 MockCart.Object,
                 MockProductRepository.Object,
                 MockOrderRepository.Object,
-                new FakeLocalizer()
+                MockLocaliser()
                 );
+            List<string> ErrorList = productService1.CheckProductModelErrors(ProductToBeTested);
 
             //ASSERT
-            Assert.Contains("StockNotAnInteger", productService1.CheckProductModelErrors(ProductToBeTested));
+            Assert.Contains("StockNotAnInteger", ErrorList);
+            Assert.Single(ErrorList);
         }
 
         [Fact]
         public void StockNotGreaterThanZeroTest()
         {
             //ARRANGE
-            ProductViewModel ProductToBeTested = new ProductViewModel();
-            ProductToBeTested.Id = 1;
-            ProductToBeTested.Name = "ball";
-            ProductToBeTested.Description = "color : orange";
-            ProductToBeTested.Details = "Its diameter is 24cm.";
+            ProductViewModel ProductToBeTested = ProductVM();
             ProductToBeTested.Stock = "-5"; //StockNotGreaterThanZero
-            ProductToBeTested.Price = "10";
 
             var MockCart = new Mock<ICart>();
             var MockProductRepository = new Mock<IProductRepository>();
@@ -261,24 +267,20 @@ namespace P3AddNewFunctionalityDotNetCore.Tests
                 MockCart.Object,
                 MockProductRepository.Object,
                 MockOrderRepository.Object,
-                new FakeLocalizer()
+                MockLocaliser()
                 );
+            List<string> ErrorList = productService1.CheckProductModelErrors(ProductToBeTested);
 
             //ASSERT
-            Assert.Contains("StockNotGreaterThanZero", productService1.CheckProductModelErrors(ProductToBeTested));
+            Assert.Contains("StockNotGreaterThanZero", ErrorList);
+            Assert.Single(ErrorList);
         }
 
         [Fact]
         public void EverythingWorksTest()
         {
             //ARRANGE
-            ProductViewModel ProductToBeTested = new ProductViewModel();
-            ProductToBeTested.Id = 1;
-            ProductToBeTested.Name = "ball";
-            ProductToBeTested.Description = ""; //the description can be empty
-            ProductToBeTested.Details = ""; //the details can be empty
-            ProductToBeTested.Stock = "5";
-            ProductToBeTested.Price = "10";
+            ProductViewModel ProductToBeTested = ProductVM();
 
             var MockCart = new Mock<ICart>();
             var MockProductRepository = new Mock<IProductRepository>();
@@ -289,12 +291,35 @@ namespace P3AddNewFunctionalityDotNetCore.Tests
                 MockCart.Object,
                 MockProductRepository.Object,
                 MockOrderRepository.Object,
-                new FakeLocalizer()
-                );
+                MockLocaliser()
+                ) ;
+            List<string> ErrorList = productService1.CheckProductModelErrors(ProductToBeTested);
 
             //ASSERT
-            Assert.Empty(productService1.CheckProductModelErrors(ProductToBeTested));
+            Assert.Empty(ErrorList);
         }
 
+        [Fact]
+        public void NothingWorksTest()
+        {
+            //ARRANGE
+            ProductViewModel ProductToBeTested = new ProductViewModel();
+
+            var MockCart = new Mock<ICart>();
+            var MockProductRepository = new Mock<IProductRepository>();
+            var MockOrderRepository = new Mock<IOrderRepository>();
+
+            //ACT
+            ProductService productService1 = new ProductService(
+                MockCart.Object,
+                MockProductRepository.Object,
+                MockOrderRepository.Object,
+                MockLocaliser()
+                );
+            List<string> ErrorList = productService1.CheckProductModelErrors(ProductToBeTested);
+
+            //ASSERT
+            Assert.Equal(5,ErrorList.Count);
+        }
     }
 }
