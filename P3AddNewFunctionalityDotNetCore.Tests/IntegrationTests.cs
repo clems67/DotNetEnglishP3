@@ -2,6 +2,7 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Localization;
+using System.Collections.Generic;
 using Moq;
 using P3AddNewFunctionalityDotNetCore.Controllers;
 using P3AddNewFunctionalityDotNetCore.Data;
@@ -141,7 +142,7 @@ namespace P3AddNewFunctionalityDotNetCore.Tests
         }
 
         [Fact]
-        public void TestTempo2()
+        public async void TestTempo2()
         {
             //DataBaseTest MockDataBase = new DataBaseTest();
             //  Setting up the stuff required for Configuration.GetConnectionString("DefaultConnection")
@@ -196,31 +197,12 @@ namespace P3AddNewFunctionalityDotNetCore.Tests
                 Stock = product2.Quantity.ToString(),
                 Price = product2.Price.ToString(),
             };
-            var CartLineNew = new CartLine
-            {
-                OrderLineId = 1,
-                Product = product,
-                Quantity = 1,
-            };
-            var CartLineNew2 = new CartLine
-            {
-                OrderLineId = 2,
-                Product = product2,
-                Quantity = 1,
-            };
-
-            var OrderToTest = new OrderViewModel
-            {
-                Lines = new[] { CartLineNew, CartLineNew2 },
-                OrderId = 1
-            };
-
-
 
             services.AddTransient<OrderController>();
             services.AddTransient<ProductController>();
             services.AddTransient<CartController>();
             services.AddTransient<ProductService>();
+            services.AddTransient<OrderRepository>();
 
             serviceProvider = services.BuildServiceProvider();
 
@@ -228,6 +210,7 @@ namespace P3AddNewFunctionalityDotNetCore.Tests
             ProductController MockProductController = serviceProvider.GetService<ProductController>();
             CartController MockCartController = serviceProvider.GetService<CartController>();
             ProductService MockProductService = serviceProvider.GetService<ProductService>();
+            OrderRepository MockOrderRepository = serviceProvider.GetRequiredService<OrderRepository>();
 
             MockProductController.Create(ProductToBeSaved1);
             MockProductController.Create(ProductToBeSaved2);
@@ -240,14 +223,22 @@ namespace P3AddNewFunctionalityDotNetCore.Tests
 
             MockProductController.DeleteProduct(product.Id);
 
-            MockOrderController.Index(OrderToTest); //save our cart (from what i've seen, it also update the stock in the database without verifying if the articles are still in the database)
+            var previousOrders = await MockOrderRepository.GetOrders();
+            List<int> ListIdPreviousOrders = new List<int>();
+            foreach (var order in previousOrders) { ListIdPreviousOrders.Add(order.Id); }
 
-            services.AddTransient<OrderRepository>();
-            serviceProvider = services.BuildServiceProvider();
-            OrderRepository MockOrderRepository = serviceProvider.GetRequiredService<OrderRepository>();
-            var theOrders = MockOrderRepository.GetOrder(1);
+            MockOrderController.Index(new OrderViewModel()); //save our cart (from what i've seen, it also update the stock in the database without verifying if the articles are still in the database)
 
-            Assert.True(theOrders.Result == null);
+            var NextOrders = await MockOrderRepository.GetOrders();
+
+            int OrderId = 0;
+            foreach (var order in NextOrders)
+            {
+                if (!ListIdPreviousOrders.Contains(order.Id)) { OrderId = order.Id; }
+            }
+            var OrderToTest = await MockOrderRepository.GetOrder(OrderId);
+
+            Assert.Single(OrderToTest.OrderLine);
         }
 
         private Product FindID(ProductService productService, ProductViewModel product)
