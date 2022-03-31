@@ -1,20 +1,16 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-using Moq;
-using Xunit;
-using Microsoft.Extensions.DependencyInjection;
-using Newtonsoft.Json;
-using P3AddNewFunctionalityDotNetCore.Data;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Localization;
-using P3AddNewFunctionalityDotNetCore.Controllers;
-using P3AddNewFunctionalityDotNetCore.Models;
-using P3AddNewFunctionalityDotNetCore.Models.Services;
-using P3AddNewFunctionalityDotNetCore.Models.Repositories;
-using P3AddNewFunctionalityDotNetCore.Models.Entities;
-using P3AddNewFunctionalityDotNetCore.Models.ViewModels;
+﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Localization;
+using Moq;
+using P3AddNewFunctionalityDotNetCore.Controllers;
+using P3AddNewFunctionalityDotNetCore.Data;
+using P3AddNewFunctionalityDotNetCore.Models;
+using P3AddNewFunctionalityDotNetCore.Models.Entities;
+using P3AddNewFunctionalityDotNetCore.Models.Repositories;
+using P3AddNewFunctionalityDotNetCore.Models.Services;
+using P3AddNewFunctionalityDotNetCore.Models.ViewModels;
+using Xunit;
 
 namespace P3AddNewFunctionalityDotNetCore.Tests
 {
@@ -153,71 +149,116 @@ namespace P3AddNewFunctionalityDotNetCore.Tests
             configurationSectionStub.Setup(x => x["DefaultConnection"]).Returns("TestConnectionString");
             Mock<Microsoft.Extensions.Configuration.IConfiguration> configurationStub = new Mock<Microsoft.Extensions.Configuration.IConfiguration>();
             configurationStub.Setup(x => x.GetSection("ConnectionStrings")).Returns(configurationSectionStub.Object);
-            configurationStub.Setup(x => x.GetConnectionString("P3Referential")).Returns("Server=.\\SQLEXPRESS;Database=P3Referential-2f561d3b-493f-46fd-83c9-6e2643e7bd0a;Trusted_Connection=True;MultipleActiveResultSets=true");
+            configurationSectionStub.Setup(x => x["P3Referential"])
+                .Returns("Server=.\\SQLEXPRESS;Database=P3Referential-2f561d3b-493f-46fd-83c9-6e2643e7bd0a;Trusted_Connection=True;MultipleActiveResultSets=true");
+            //configurationStub.Setup(x => x.GetConnectionString("P3Referential")).Returns("Server=.\\SQLEXPRESS;Database=P3Referential-2f561d3b-493f-46fd-83c9-6e2643e7bd0a;Trusted_Connection=True;MultipleActiveResultSets=true");
             IServiceCollection services = new ServiceCollection();
             var target = new Startup(configurationStub.Object);
-
+            var serviceProvider = services.BuildServiceProvider();
+            target.ConfigureServices(services);
             //Act
 
-            target.ConfigureServices(services);
-            //  Mimic internal asp.net core logic.
-            services.AddTransient<OrderController>();
-            services.AddTransient<ProductController>();
 
             //Assert
-
-            var serviceProvider = services.BuildServiceProvider();
-
-            OrderController MockOrderController = serviceProvider.GetService<OrderController>();
-            ProductController MockProductController = serviceProvider.GetService<ProductController>();
-
             var product = new Product //used to create an OrderViewModel, so we can fill a Cart
             {
                 //Id = 1,
-                Price = 35.1,
                 Name = "new product",
                 Description = "new product description",
                 Details = "product details",
-                Quantity = 3
+                Quantity = 3,
+                Price = 35.1,
             };
             var product2 = new Product
             {
                 //Id = 2,
-                Price = 44.4,
                 Name = "new product2",
                 Description = "new product2 description",
                 Details = "product2 details",
-                Quantity = 10
+                Quantity = 10,
+                Price = 44.4,
             };
+
             //CREATION OF PRODUCTVIEWMODELS SO THEY CAN BE SAVED IN THE DATABASE
-            var ProductToBeSaved = new ProductViewModel();
-            ProductToBeSaved.Id = 1;
-            ProductToBeSaved.Name = "new product";
-            ProductToBeSaved.Description = "new product description";
-            ProductToBeSaved.Details = "product details";
-            ProductToBeSaved.Stock = "3";
-            //MockProductController.Create(ProductToBeSaved);
-            ProductToBeSaved = new ProductViewModel(); //product saved in the database
-            ProductToBeSaved.Id = 2;
-            ProductToBeSaved.Name = "new product2";
-            ProductToBeSaved.Description = "new product2 description";
-            ProductToBeSaved.Details = "product2 details";
-            ProductToBeSaved.Stock = "10";
-            //MockProductController.Create(ProductToBeSaved); //product2 saved in the database
+            var ProductToBeSaved1 = new ProductViewModel
+            {
+                Name = product.Name,
+                Description = product.Description,
+                Details = product.Details,
+                Stock = product.Quantity.ToString(),
+                Price = product.Price.ToString(),
+            };
+            var ProductToBeSaved2 = new ProductViewModel
+            {
+                Name = product2.Name,
+                Description = product2.Description,
+                Details = product2.Details,
+                Stock = product2.Quantity.ToString(),
+                Price = product2.Price.ToString(),
+            };
+            var CartLineNew = new CartLine
+            {
+                OrderLineId = 1,
+                Product = product,
+                Quantity = 1,
+            };
+            var CartLineNew2 = new CartLine
+            {
+                OrderLineId = 2,
+                Product = product2,
+                Quantity = 1,
+            };
+
+            var OrderToTest = new OrderViewModel
+            {
+                Lines = new[] { CartLineNew, CartLineNew2 },
+                OrderId = 1
+            };
 
 
 
-            var OrderToTest = new OrderViewModel();
-            OrderToTest.OrderId = 1;
-            var CartLineNew = new CartLine();
-            CartLineNew.OrderLineId = 1;
-            CartLineNew.Product = product;
-            CartLineNew.Quantity = 1;
-            OrderToTest.Lines = new[] { CartLineNew };
+            services.AddTransient<OrderController>();
+            services.AddTransient<ProductController>();
+            services.AddTransient<CartController>();
+            services.AddTransient<ProductService>();
+
+            serviceProvider = services.BuildServiceProvider();
+
+            OrderController MockOrderController = serviceProvider.GetService<OrderController>();
+            ProductController MockProductController = serviceProvider.GetService<ProductController>();
+            CartController MockCartController = serviceProvider.GetService<CartController>();
+            ProductService MockProductService = serviceProvider.GetService<ProductService>();
+
+            MockProductController.Create(ProductToBeSaved1);
+            MockProductController.Create(ProductToBeSaved2);
+
+            product = FindID(MockProductService, ProductToBeSaved1);
+            product2 = FindID(MockProductService, ProductToBeSaved2);
+
+            MockCartController.AddToCart(product.Id);
+            MockCartController.AddToCart(product2.Id);
+
+            MockProductController.DeleteProduct(product.Id);
 
             MockOrderController.Index(OrderToTest); //save our cart (from what i've seen, it also update the stock in the database without verifying if the articles are still in the database)
 
+            services.AddTransient<OrderRepository>();
+            serviceProvider = services.BuildServiceProvider();
+            OrderRepository MockOrderRepository = serviceProvider.GetRequiredService<OrderRepository>();
+            var theOrders = MockOrderRepository.GetOrder(1);
+
+            Assert.True(theOrders.Result == null);
         }
+
+        private Product FindID(ProductService productService, ProductViewModel product)
+        {
+            return productService.GetAllProducts()
+                .Find(p => p.Name == product.Name
+                        && p.Description == product.Description
+                        && p.Details == product.Details
+                    );
+        }
+
 
     }
 
