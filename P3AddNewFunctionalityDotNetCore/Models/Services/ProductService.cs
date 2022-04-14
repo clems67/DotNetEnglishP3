@@ -7,6 +7,7 @@ using Microsoft.Extensions.Localization;
 using P3AddNewFunctionalityDotNetCore.Models.Entities;
 using P3AddNewFunctionalityDotNetCore.Models.Repositories;
 using P3AddNewFunctionalityDotNetCore.Models.ViewModels;
+using System.ComponentModel.DataAnnotations;
 
 namespace P3AddNewFunctionalityDotNetCore.Models.Services
 {
@@ -94,6 +95,15 @@ namespace P3AddNewFunctionalityDotNetCore.Models.Services
         public List<string> CheckProductModelErrors(ProductViewModel product)
         {
             List<string> modelErrors = new List<string>();
+            List<ValidationResult> modelErrorsList = new List<ValidationResult>();
+            var context = new ValidationContext(product, null, null);
+            bool isvalid = Validator.TryValidateObject(product, context,modelErrorsList, true);
+
+            foreach(var error in modelErrorsList)
+            {
+                modelErrors.Add(_localizer[error.ErrorMessage]);
+            }
+            /*
             if (product.Name == null || string.IsNullOrWhiteSpace(product.Name))
             {
                 modelErrors.Add(_localizer["MissingName"]);
@@ -128,7 +138,7 @@ namespace P3AddNewFunctionalityDotNetCore.Models.Services
                 if (qt <= 0)
                     modelErrors.Add(_localizer["StockNotGreaterThanZero"]);
             }
-
+            */
             return modelErrors;
         }
 
