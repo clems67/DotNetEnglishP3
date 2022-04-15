@@ -18,7 +18,7 @@ namespace P3AddNewFunctionalityDotNetCore.Models.ViewModels
         [RegularExpression(@"^([1-9][0-9]*)$", ErrorMessage = "stocksth")]
         public string Stock { get; set; }
         [Required(ErrorMessage = "MissingPrice")]
-        [RegularExpression(@"^([1-9][0-9]*)$", ErrorMessage = "PriceNotANumber")]
+        [RegularExpression(@"^([0-9]+[.|,]?[0-9]*)$", ErrorMessage = "PriceNotANumber")]
         public string Price { get; set; }
     }
 }
