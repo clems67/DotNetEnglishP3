@@ -51,39 +51,39 @@ namespace P3AddNewFunctionalityDotNetCore.Tests
 
             serviceProvider = services.BuildServiceProvider();
 
-            OrderController MockOrderController = serviceProvider.GetService<OrderController>();
-            ProductController MockProductController = serviceProvider.GetService<ProductController>();
-            CartController MockCartController = serviceProvider.GetService<CartController>();
-            ProductService MockProductService = serviceProvider.GetService<ProductService>();
-            OrderRepository MockOrderRepository = serviceProvider.GetRequiredService<OrderRepository>();
-            MockProductController.Create(ProductToBeSaved1);
-            MockProductController.Create(ProductToBeSaved2);
+            OrderController orderController = serviceProvider.GetService<OrderController>();
+            ProductController productController = serviceProvider.GetService<ProductController>();
+            CartController cartController = serviceProvider.GetService<CartController>();
+            ProductService productService = serviceProvider.GetService<ProductService>();
+            OrderRepository orderRepository = serviceProvider.GetRequiredService<OrderRepository>();
+            productController.Create(ProductToBeSaved1);
+            productController.Create(ProductToBeSaved2);
 
-            var product = FindID(MockProductService, ProductToBeSaved1);
-            var product2 = FindID(MockProductService, ProductToBeSaved2);
+            var product = FindID(productService, ProductToBeSaved1);
+            var product2 = FindID(productService, ProductToBeSaved2);
 
             //ACT
 
-            MockCartController.AddToCart(product.Id);
-            MockCartController.AddToCart(product2.Id);
+            cartController.AddToCart(product.Id);
+            cartController.AddToCart(product2.Id);
 
-            MockProductController.DeleteProduct(product.Id);
+            productController.DeleteProduct(product.Id);
 
-            var previousOrders = await MockOrderRepository.GetOrders();
+            var previousOrders = await orderRepository.GetOrders();
             List<int> ListIdPreviousOrders = new List<int>();
             foreach (var order in previousOrders) { ListIdPreviousOrders.Add(order.Id); }
 
-            MockOrderController.Index(new OrderViewModel()); //save our cart (from what i've seen, it also update the stock in the database without verifying if the articles are still in the database)
+            orderController.Index(new OrderViewModel());
 
             //ASSERT
-            var NextOrders = await MockOrderRepository.GetOrders();
+            var NextOrders = await orderRepository.GetOrders();
 
             int OrderId = 0;
             foreach (var order in NextOrders) //search the id of the new order
             {
                 if (!ListIdPreviousOrders.Contains(order.Id)) { OrderId = order.Id; break; } //if the id is not in the older list then we found the id
             }
-            var OrderToTest = await MockOrderRepository.GetOrder(OrderId);
+            var OrderToTest = await orderRepository.GetOrder(OrderId);
 
             Assert.Single(OrderToTest.OrderLine);
         }
@@ -131,38 +131,38 @@ namespace P3AddNewFunctionalityDotNetCore.Tests
 
             serviceProvider = services.BuildServiceProvider();
 
-            OrderController MockOrderController = serviceProvider.GetService<OrderController>();
-            ProductController MockProductController = serviceProvider.GetService<ProductController>();
-            CartController MockCartController = serviceProvider.GetService<CartController>();
-            ProductService MockProductService = serviceProvider.GetService<ProductService>();
-            OrderRepository MockOrderRepository = serviceProvider.GetRequiredService<OrderRepository>();
+            OrderController orderController = serviceProvider.GetService<OrderController>();
+            ProductController productController = serviceProvider.GetService<ProductController>();
+            CartController CartController = serviceProvider.GetService<CartController>();
+            ProductService productService = serviceProvider.GetService<ProductService>();
+            OrderRepository orderRepository = serviceProvider.GetRequiredService<OrderRepository>();
 
             //ACT
 
-            MockProductController.Create(ProductToBeSaved1);
-            var product = FindID(MockProductService, ProductToBeSaved1);
-            MockCartController.AddToCart(product.Id);
+            productController.Create(ProductToBeSaved1);
+            var product = FindID(productService, ProductToBeSaved1);
+            CartController.AddToCart(product.Id);
 
-            MockProductController.Create(ProductToBeSaved2);
-            var product2 = FindID(MockProductService, ProductToBeSaved2);
-            MockCartController.AddToCart(product2.Id);
+            productController.Create(ProductToBeSaved2);
+            var product2 = FindID(productService, ProductToBeSaved2);
+            CartController.AddToCart(product2.Id);
 
 
-            var previousOrders = await MockOrderRepository.GetOrders();
+            var previousOrders = await orderRepository.GetOrders();
             List<int> ListIdPreviousOrders = new List<int>();
             foreach (var order in previousOrders) { ListIdPreviousOrders.Add(order.Id); }
 
-            MockOrderController.Index(new OrderViewModel()); //save our cart (from what i've seen, it also update the stock in the database without verifying if the articles are still in the database)
+            orderController.Index(new OrderViewModel());
 
             //ASSERT
-            var NextOrders = await MockOrderRepository.GetOrders();
+            var NextOrders = await orderRepository.GetOrders();
 
             int OrderId = 0;
             foreach (var order in NextOrders) //search the id of the new order
             {
                 if (!ListIdPreviousOrders.Contains(order.Id)) { OrderId = order.Id; break; } //if the id is not in the older list then we found the id
             }
-            var OrderToTest = await MockOrderRepository.GetOrder(OrderId);
+            var OrderToTest = await orderRepository.GetOrder(OrderId);
 
             Assert.Equal(2, OrderToTest.OrderLine.Count);
         }
