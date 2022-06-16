@@ -25,33 +25,24 @@ namespace P3AddNewFunctionalityDotNetCore.Tests
             {
                 get
                 {
-                    if (name == "MissingName")
+                    switch (name)
                     {
-                        return new LocalizedString("MissingName", "MissingName");
-                    }
-                    else if (name == "MissingPrice")
-                    {
-                        return new LocalizedString("MissingPrice", "MissingPrice");
-                    }
-                    else if (name == "PriceNotANumber")
-                    {
-                        return new LocalizedString("PriceNotANumber", "PriceNotANumber");
-                    }
-                    else if (name == "PriceNotGreaterThanZero")
-                    {
-                        return new LocalizedString("PriceNotGreaterThanZero", "PriceNotGreaterThanZero");
-                    }
-                    else if (name == "MissingQuantity")
-                    {
-                        return new LocalizedString("MissingQuantity", "MissingQuantity");
-                    }
-                    else if (name == "StockNotAnInteger")
-                    {
-                        return new LocalizedString("StockNotAnInteger", "StockNotAnInteger");
-                    }
-                    else //if (name == "StockNotGreaterThanZero")
-                    {
-                        return new LocalizedString("StockNotGreaterThanZero", "StockNotGreaterThanZero");
+                        case "MissingName":
+                            return new LocalizedString("MissingName", "MissingName");
+                        case "MissingPrice":
+                            return new LocalizedString("MissingPrice", "MissingPrice");
+                        case "PriceNotANumber":
+                            return new LocalizedString("PriceNotANumber", "PriceNotANumber");
+                        case "PriceNotGreaterThanZero":
+                            return new LocalizedString("PriceNotGreaterThanZero", "PriceNotGreaterThanZero");
+                        case "MissingQuantity":
+                            return new LocalizedString("MissingQuantity", "MissingQuantity");
+                        case "StockNotAnInteger":
+                            return new LocalizedString("StockNotAnInteger", "StockNotAnInteger");
+                        case "StockNotGreaterThanZero":
+                            return new LocalizedString("StockNotGreaterThanZero", "StockNotGreaterThanZero");
+                        default:
+                            return new LocalizedString("", "");
                     }
                 }
             }
@@ -92,7 +83,7 @@ namespace P3AddNewFunctionalityDotNetCore.Tests
                 Description = "color : orange",
                 Details = "Its diameter is 24cm.",
                 Stock = "1",
-                Price = "10"
+                Price = "10.03"
             };
 
             return ProductToBeTested;
@@ -120,7 +111,7 @@ namespace P3AddNewFunctionalityDotNetCore.Tests
 
 
             //ASSERT
-            Assert.Contains("MissingName", ErrorList);
+            Assert.Contains("MissingName", ErrorList); //ok
             Assert.Single(ErrorList);
         }
 
@@ -147,8 +138,7 @@ namespace P3AddNewFunctionalityDotNetCore.Tests
 
             //ASSERT
             Assert.Contains("MissingPrice", ErrorList);
-            Assert.Contains("PriceNotANumber", ErrorList);
-            Assert.Equal(2, ErrorList.Count);
+             Assert.Single(ErrorList);
         }
 
         [Fact]
@@ -171,7 +161,7 @@ namespace P3AddNewFunctionalityDotNetCore.Tests
             List<string> ErrorList = productService1.CheckProductModelErrors(ProductToBeTested);
 
             //ASSERT
-            Assert.Contains("PriceNotANumber", ErrorList);
+            Assert.Contains("PriceNotANumber", ErrorList); // +PriceNotGreaterThanZero
             Assert.Single(ErrorList);
         }
 
@@ -196,7 +186,7 @@ namespace P3AddNewFunctionalityDotNetCore.Tests
             List<string> ErrorList = productService1.CheckProductModelErrors(ProductToBeTested);
 
             //ASSERT
-            Assert.Contains("PriceNotGreaterThanZero", ErrorList);
+            Assert.Contains("PriceNotANumber", ErrorList); // +PriceNotANumber
             Assert.Single(ErrorList);
         }
 
@@ -222,8 +212,7 @@ namespace P3AddNewFunctionalityDotNetCore.Tests
 
             //ASSERT
             Assert.Contains("MissingQuantity", ErrorList);
-            Assert.Contains("StockNotAnInteger", ErrorList);
-            Assert.Equal(2, ErrorList.Count);
+            Assert.Single(ErrorList);
         }
 
         [Fact]
@@ -247,7 +236,7 @@ namespace P3AddNewFunctionalityDotNetCore.Tests
             List<string> ErrorList = productService1.CheckProductModelErrors(ProductToBeTested);
 
             //ASSERT
-            Assert.Contains("StockNotAnInteger", ErrorList);
+            Assert.Contains("StockNotAnInteger", ErrorList); // 2 times : "StockNotAnInteger"
             Assert.Single(ErrorList);
         }
 
@@ -272,7 +261,7 @@ namespace P3AddNewFunctionalityDotNetCore.Tests
             List<string> ErrorList = productService1.CheckProductModelErrors(ProductToBeTested);
 
             //ASSERT
-            Assert.Contains("StockNotGreaterThanZero", ErrorList);
+            Assert.Contains("StockNotAnInteger", ErrorList); // 2 times : "StockNotAnInteger"
             Assert.Single(ErrorList);
         }
 
@@ -292,7 +281,7 @@ namespace P3AddNewFunctionalityDotNetCore.Tests
                 MockProductRepository.Object,
                 MockOrderRepository.Object,
                 MockLocaliser()
-                ) ;
+                );
             List<string> ErrorList = productService1.CheckProductModelErrors(ProductToBeTested);
 
             //ASSERT
@@ -319,7 +308,7 @@ namespace P3AddNewFunctionalityDotNetCore.Tests
             List<string> ErrorList = productService1.CheckProductModelErrors(ProductToBeTested);
 
             //ASSERT
-            Assert.Equal(5,ErrorList.Count);
+            Assert.Equal(3, ErrorList.Count);
         }
     }
 }
